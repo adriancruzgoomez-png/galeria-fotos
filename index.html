@@ -6,121 +6,41 @@
 <title>Galería de fotos</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
- 
-  body {
-    font-family: "Segoe UI", Arial, sans-serif;
-    background: #ffffff;
-    padding: 20px;
-  }
- 
+  body { font-family: "Segoe UI", Arial, sans-serif; background: #ffffff; padding: 20px; }
   #btn-admin {
-    display: block;
-    margin: 0 auto 24px;
-    padding: 10px 22px;
-    background: #1e73be;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: background 0.2s;
+    display: block; margin: 0 auto 24px; padding: 10px 22px;
+    background: #1e73be; color: white; border: none; border-radius: 8px;
+    font-size: 14px; cursor: pointer; transition: background 0.2s;
   }
   #btn-admin:hover { background: #155d99; }
   #btn-admin.hidden { display: none; }
- 
-  #estado {
-    text-align: center;
-    font-size: 13px;
-    color: #777;
-    margin-bottom: 20px;
-    min-height: 20px;
-  }
- 
-  .galeria {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 14px;
-  }
- 
-  .foto {
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid #dcdcdc;
-    aspect-ratio: 1;
-  }
- 
-  .foto img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
- 
-  #vacio {
-    text-align: center;
-    color: #aaa;
-    font-size: 15px;
-    margin-top: 40px;
-  }
- 
+  #estado { text-align: center; font-size: 13px; color: #777; margin-bottom: 20px; min-height: 20px; }
+  .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+  .foto { border-radius: 10px; overflow: hidden; border: 1px solid #dcdcdc; aspect-ratio: 1; }
+  .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  #vacio { text-align: center; color: #aaa; font-size: 15px; margin-top: 40px; display: none; }
   #panel-pass {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 100;
   }
   #panel-pass.visible { display: flex; }
-  #caja-pass {
-    background: white;
-    border-radius: 12px;
-    padding: 28px 32px;
-    width: 300px;
-    text-align: center;
-  }
+  #caja-pass { background: white; border-radius: 12px; padding: 28px 32px; width: 300px; text-align: center; }
   #caja-pass h3 { font-size: 17px; margin-bottom: 16px; color: #2e2e2e; }
-  #input-pass {
-    width: 100%;
-    padding: 9px 12px;
-    border: 1px solid #dcdcdc;
-    border-radius: 8px;
-    font-size: 14px;
-    margin-bottom: 12px;
-  }
-  #caja-pass button {
-    width: 100%;
-    padding: 10px;
-    background: #1e73be;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    cursor: pointer;
-    margin-bottom: 8px;
-  }
+  #input-pass { width: 100%; padding: 9px 12px; border: 1px solid #dcdcdc; border-radius: 8px; font-size: 14px; margin-bottom: 12px; }
+  #caja-pass button { width: 100%; padding: 10px; background: #1e73be; color: white; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 8px; }
   #caja-pass button:hover { background: #155d99; }
-  #btn-cancelar-pass {
-    background: transparent !important;
-    color: #777 !important;
-    font-size: 13px !important;
-  }
+  #btn-cancelar-pass { background: transparent !important; color: #777 !important; font-size: 13px !important; }
   #error-pass { color: #c00; font-size: 13px; min-height: 18px; }
 </style>
 </head>
 <body>
- 
-<div id="titulo-oculto" style="text-align:center; color:#ccc; font-size:12px; cursor:default; margin-bottom:8px; user-select:none;" ondblclick="mostrarPanelPass()">●●●</div>
- 
-<div id="btn-admin-wrap">
-  <button id="btn-admin" class="hidden" onclick="abrirPicker()">+ Actualizar fotos</button>
-</div>
- 
+
+<div id="titulo-oculto" style="text-align:center;color:#ccc;font-size:12px;cursor:default;margin-bottom:8px;user-select:none;" ondblclick="mostrarPanelPass()">●●●</div>
+<button id="btn-admin" class="hidden" onclick="abrirPicker()">+ Actualizar fotos</button>
 <div id="estado"></div>
 <div class="galeria" id="galeria"></div>
-<div id="vacio" style="display:none;">No hay fotos todavía.</div>
- 
+<div id="vacio">No hay fotos todavía.</div>
+
 <div id="panel-pass">
   <div id="caja-pass">
     <h3>Acceso de administrador</h3>
@@ -130,36 +50,20 @@
     <div id="error-pass"></div>
   </div>
 </div>
- 
+
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script>
   const WORKER_URL = "https://galeria-fotos-eoitudela.adrian-cruz-goomez.workers.dev";
   const CLIENT_ID = "586063066601-atpi1nf1em0il7v15spn2ao1gvk87ial.apps.googleusercontent.com";
   const ADMIN_PASS = "admin1234";
- 
+
   let tokenClient = null;
   let accessToken = null;
-  let esAdmin = false;
- 
-  // Al cargar, comprobar si venimos de una sesión del Picker
-  window.addEventListener("load", async () => {
-    const params = new URLSearchParams(window.location.search);
-    const sessionId = params.get("picker_session");
-    if (sessionId) {
-      // Limpiar la URL
-      history.replaceState({}, "", window.location.pathname);
-      // Restaurar token y modo admin desde sessionStorage
-      accessToken = sessionStorage.getItem("picker_token");
-      esAdmin = true;
-      document.getElementById("btn-admin").classList.remove("hidden");
-      if (accessToken && sessionId) {
-        await guardarFotos(sessionId);
-      }
-    } else {
-      cargarFotos();
-    }
-  });
- 
+  let pickerWindow = null;
+  let pollingInterval = null;
+
+  cargarFotos();
+
   async function cargarFotos() {
     setEstado("Cargando fotos...");
     try {
@@ -171,7 +75,7 @@
       setEstado("Error al cargar las fotos.");
     }
   }
- 
+
   function mostrarFotos(fotos) {
     const galeria = document.getElementById("galeria");
     const vacio = document.getElementById("vacio");
@@ -192,49 +96,54 @@
       galeria.appendChild(div);
     });
   }
- 
+
   function setEstado(msg) {
     document.getElementById("estado").textContent = msg;
   }
- 
+
   function mostrarPanelPass() {
     document.getElementById("panel-pass").classList.add("visible");
     document.getElementById("input-pass").value = "";
     document.getElementById("error-pass").textContent = "";
     setTimeout(() => document.getElementById("input-pass").focus(), 100);
   }
- 
+
   function cerrarPanelPass() {
     document.getElementById("panel-pass").classList.remove("visible");
   }
- 
+
   function verificarPass() {
     const val = document.getElementById("input-pass").value;
     if (val === ADMIN_PASS) {
-      esAdmin = true;
       cerrarPanelPass();
       document.getElementById("btn-admin").classList.remove("hidden");
     } else {
       document.getElementById("error-pass").textContent = "Contraseña incorrecta.";
     }
   }
- 
+
   function abrirPicker() {
+    // Abrir popup INMEDIATAMENTE desde el click (antes de cualquier async)
+    pickerWindow = window.open("about:blank", "picker_google", "width=950,height=700,left=100,top=100");
+
     if (!tokenClient) {
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: "https://www.googleapis.com/auth/photospicker.mediaitems.readonly",
         callback: async (resp) => {
-          if (resp.error) { setEstado("Error de autenticación."); return; }
+          if (resp.error) {
+            setEstado("Error de autenticación.");
+            if (pickerWindow) pickerWindow.close();
+            return;
+          }
           accessToken = resp.access_token;
-          sessionStorage.setItem("picker_token", accessToken);
           await iniciarSesionPicker();
         }
       });
     }
     tokenClient.requestAccessToken();
   }
- 
+
   async function iniciarSesionPicker() {
     setEstado("Preparando selector...");
     try {
@@ -246,53 +155,76 @@
         }
       });
       const sesion = await sesRes.json();
- 
+
       if (!sesion.pickerUri) {
         setEstado("Error: " + JSON.stringify(sesion));
+        if (pickerWindow) pickerWindow.close();
         return;
       }
- 
-      // Guardar sessionId para recuperarlo al volver
-      sessionStorage.setItem("picker_session_id", sesion.id);
- 
-      // Añadir parámetro de retorno a la URL del picker
-      const returnUrl = window.location.origin + window.location.pathname + "?picker_session=" + sesion.id;
-      const pickerUrl = sesion.pickerUri + "&callback_uri=" + encodeURIComponent(returnUrl);
- 
-      // Redirigir al picker
-      window.location.href = pickerUrl;
- 
+
+      // Cargar la URL del picker en la ventana ya abierta
+      pickerWindow.location.href = sesion.pickerUri;
+      setEstado("Selecciona las fotos en la ventana que se ha abierto. Cuando termines ciérrala o espera.");
+
+      // Polling para detectar cuando el usuario termina
+      const sessionId = sesion.id;
+      pollingInterval = setInterval(async () => {
+        try {
+          const pollRes = await fetch("https://photospicker.googleapis.com/v1/sessions/" + sessionId, {
+            headers: { "Authorization": "Bearer " + accessToken }
+          });
+          const poll = await pollRes.json();
+
+          if (poll.mediaItemsSet) {
+            clearInterval(pollingInterval);
+            if (pickerWindow && !pickerWindow.closed) pickerWindow.close();
+            await guardarFotos(sessionId);
+          }
+
+          // Si el usuario cerró la ventana manualmente
+          if (pickerWindow && pickerWindow.closed) {
+            clearInterval(pollingInterval);
+            setEstado("Ventana cerrada. Comprobando selección...");
+            await guardarFotos(sessionId);
+          }
+        } catch(e) {
+          clearInterval(pollingInterval);
+          setEstado("Error en el selector.");
+        }
+      }, 2000);
+
     } catch (e) {
       setEstado("Error: " + e.message);
+      if (pickerWindow) pickerWindow.close();
     }
   }
- 
+
   async function guardarFotos(sessionId) {
-    setEstado("Cargando fotos seleccionadas...");
+    setEstado("Guardando fotos seleccionadas...");
     try {
       const res = await fetch("https://photospicker.googleapis.com/v1/mediaItems?sessionId=" + sessionId, {
         headers: { "Authorization": "Bearer " + accessToken }
       });
       const data = await res.json();
- 
+
       if (!data.mediaItems || data.mediaItems.length === 0) {
         setEstado("No se seleccionaron fotos.");
         await cargarFotos();
         return;
       }
- 
+
       const fotos = data.mediaItems.map(item => ({
         id: item.id,
         filename: item.mediaFile?.filename || "",
         baseUrl: item.mediaFile?.baseUrl || ""
       }));
- 
+
       await fetch(WORKER_URL + "/photos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(fotos)
       });
- 
+
       mostrarFotos(fotos);
       setEstado("✓ Galería actualizada con " + fotos.length + " fotos.");
     } catch (e) {
@@ -301,6 +233,6 @@
     }
   }
 </script>
- 
+
 </body>
 </html>
