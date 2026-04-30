@@ -7,13 +7,16 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: "Segoe UI", Arial, sans-serif; background: #ffffff; padding: 20px; }
-  #btn-admin {
-    display: block; margin: 0 auto 24px; padding: 10px 22px;
-    background: #1e73be; color: white; border: none; border-radius: 8px;
+  .btn {
+    display: inline-block; padding: 10px 22px; border: none; border-radius: 8px;
     font-size: 14px; cursor: pointer; transition: background 0.2s;
   }
+  #btn-admin { background: #1e73be; color: white; display: block; margin: 0 auto 24px; }
   #btn-admin:hover { background: #155d99; }
   #btn-admin.hidden { display: none; }
+  #btn-confirmar { background: #2e7d32; color: white; display: block; margin: 0 auto 16px; }
+  #btn-confirmar:hover { background: #1b5e20; }
+  #btn-confirmar.hidden { display: none; }
   #estado { text-align: center; font-size: 13px; color: #777; margin-bottom: 20px; min-height: 20px; }
   .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
   .foto { border-radius: 10px; overflow: hidden; border: 1px solid #dcdcdc; aspect-ratio: 1; }
@@ -36,7 +39,8 @@
 <body>
 
 <div id="titulo-oculto" style="text-align:center;color:#ccc;font-size:12px;cursor:default;margin-bottom:8px;user-select:none;" ondblclick="mostrarPanelPass()">●●●</div>
-<button id="btn-admin" class="hidden" onclick="abrirPicker()">+ Actualizar fotos</button>
+<button id="btn-admin" class="btn hidden" onclick="abrirPicker()">+ Actualizar fotos</button>
+<button id="btn-confirmar" class="btn hidden" onclick="recogerFotos()">✓ Ya seleccioné las fotos</button>
 <div id="estado"></div>
 <div class="galeria" id="galeria"></div>
 <div id="vacio">No hay fotos todavía.</div>
@@ -60,7 +64,7 @@
   let tokenClient = null;
   let accessToken = null;
   let pickerWindow = null;
-  let pollingInterval = null;
+  let currentSessionId = null;
 
   cargarFotos();
 
@@ -123,7 +127,6 @@
   }
 
   function abrirPicker() {
-    // Abrir popup INMEDIATAMENTE desde el click (antes de cualquier async)
     pickerWindow = window.open("about:blank", "picker_google", "width=950,height=700,left=100,top=100");
 
     if (!tokenClient) {
@@ -162,41 +165,29 @@
         return;
       }
 
-      // Cargar la URL del picker en la ventana ya abierta
+      currentSessionId = sesion.id;
       pickerWindow.location.href = sesion.pickerUri;
-      setEstado("Selecciona las fotos en la ventana que se ha abierto. Cuando termines ciérrala o espera.");
 
-      // Polling para detectar cuando el usuario termina
-      const sessionId = sesion.id;
-      pollingInterval = setInterval(async () => {
-        try {
-          const pollRes = await fetch("https://photospicker.googleapis.com/v1/sessions/" + sessionId, {
-            headers: { "Authorization": "Bearer " + accessToken }
-          });
-          const poll = await pollRes.json();
-
-          if (poll.mediaItemsSet) {
-            clearInterval(pollingInterval);
-            if (pickerWindow && !pickerWindow.closed) pickerWindow.close();
-            await guardarFotos(sessionId);
-          }
-
-          // Si el usuario cerró la ventana manualmente
-          if (pickerWindow && pickerWindow.closed) {
-            clearInterval(pollingInterval);
-            setEstado("Ventana cerrada. Comprobando selección...");
-            await guardarFotos(sessionId);
-          }
-        } catch(e) {
-          clearInterval(pollingInterval);
-          setEstado("Error en el selector.");
-        }
-      }, 2000);
+      // Mostrar botón manual
+      document.getElementById("btn-confirmar").classList.remove("hidden");
+      document.getElementById("btn-admin").classList.add("hidden");
+      setEstado("Selecciona las fotos en la ventana abierta. Cuando termines pulsa el botón verde.");
 
     } catch (e) {
       setEstado("Error: " + e.message);
       if (pickerWindow) pickerWindow.close();
     }
+  }
+
+  async function recogerFotos() {
+    if (!currentSessionId || !accessToken) {
+      setEstado("Error: no hay sesión activa.");
+      return;
+    }
+    if (pickerWindow && !pickerWindow.closed) pickerWindow.close();
+    document.getElementById("btn-confirmar").classList.add("hidden");
+    document.getElementById("btn-admin").classList.remove("hidden");
+    await guardarFotos(currentSessionId);
   }
 
   async function guardarFotos(sessionId) {
@@ -208,7 +199,7 @@
       const data = await res.json();
 
       if (!data.mediaItems || data.mediaItems.length === 0) {
-        setEstado("No se seleccionaron fotos.");
+        setEstado("No se encontraron fotos. ¿Confirmaste la selección en Google Fotos?");
         await cargarFotos();
         return;
       }
@@ -227,6 +218,7 @@
 
       mostrarFotos(fotos);
       setEstado("✓ Galería actualizada con " + fotos.length + " fotos.");
+      currentSessionId = null;
     } catch (e) {
       setEstado("Error al guardar: " + e.message);
       await cargarFotos();
