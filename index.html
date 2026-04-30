@@ -93,7 +93,7 @@
       const div = document.createElement("div");
       div.className = "foto";
       const img = document.createElement("img");
-      img.src = foto.baseUrl + "=w400-h400";
+      img.src = foto.url;
       img.alt = foto.filename || "Foto";
       img.loading = "lazy";
       div.appendChild(img);
@@ -168,7 +168,6 @@
       currentSessionId = sesion.id;
       pickerWindow.location.href = sesion.pickerUri;
 
-      // Mostrar botón manual
       document.getElementById("btn-confirmar").classList.remove("hidden");
       document.getElementById("btn-admin").classList.add("hidden");
       setEstado("Selecciona las fotos en la ventana abierta. Cuando termines pulsa el botón verde.");
@@ -187,42 +186,46 @@
     if (pickerWindow && !pickerWindow.closed) pickerWindow.close();
     document.getElementById("btn-confirmar").classList.add("hidden");
     document.getElementById("btn-admin").classList.remove("hidden");
-    await guardarFotos(currentSessionId);
-  }
 
-  async function guardarFotos(sessionId) {
-    setEstado("Guardando fotos seleccionadas...");
+    setEstado("Obteniendo fotos seleccionadas...");
     try {
-      const res = await fetch("https://photospicker.googleapis.com/v1/mediaItems?sessionId=" + sessionId, {
+      const res = await fetch("https://photospicker.googleapis.com/v1/mediaItems?sessionId=" + currentSessionId, {
         headers: { "Authorization": "Bearer " + accessToken }
       });
       const data = await res.json();
-      console.log(JSON.stringify(data.mediaItems?.[0]));
 
       if (!data.mediaItems || data.mediaItems.length === 0) {
         setEstado("No se encontraron fotos. ¿Confirmaste la selección en Google Fotos?");
-        await cargarFotos();
         return;
       }
 
-      const fotos = data.mediaItems.map(item => ({
+      const mediaItems = data.mediaItems.map(item => ({
         id: item.id,
-        filename: item.mediaFile?.filename || "",
+        filename: item.mediaFile?.filename?.replace(/\.[^/.]+$/, "") || item.id,
         baseUrl: item.mediaFile?.baseUrl || ""
       }));
 
-      await fetch(WORKER_URL + "/photos", {
+      setEstado("Subiendo " + mediaItems.length + " fotos a GitHub... (puede tardar unos segundos)");
+
+      const uploadRes = await fetch(WORKER_URL + "/photos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(fotos)
+        body: JSON.stringify({ mediaItems, accessToken })
       });
 
-      mostrarFotos(fotos);
-      setEstado("✓ Galería actualizada con " + fotos.length + " fotos.");
+      const result = await uploadRes.json();
+
+      if (result.ok) {
+        mostrarFotos(result.fotos);
+        setEstado("✓ Galería actualizada con " + result.guardadas + " fotos." +
+          (result.errores > 0 ? " (" + result.errores + " errores)" : ""));
+      } else {
+        setEstado("Error: " + JSON.stringify(result));
+      }
+
       currentSessionId = null;
     } catch (e) {
-      setEstado("Error al guardar: " + e.message);
-      await cargarFotos();
+      setEstado("Error: " + e.message);
     }
   }
 </script>
