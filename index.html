@@ -197,6 +197,7 @@
         headers: { "Authorization": "Bearer " + accessToken }
       });
       const data = await res.json();
+      console.log(JSON.stringify(data.mediaItems?.[0]));
 
       if (!data.mediaItems || data.mediaItems.length === 0) {
         setEstado("No se encontraron fotos. ¿Confirmaste la selección en Google Fotos?");
