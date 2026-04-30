@@ -248,7 +248,7 @@
       const sesion = await sesRes.json();
  
       if (!sesion.pickerUri) {
-        setEstado("Error: no se pudo obtener la URL del selector.");
+        setEstado("Error: " + JSON.stringify(sesion));
         return;
       }
  
