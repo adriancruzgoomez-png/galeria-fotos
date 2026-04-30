@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galería de fotos</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #ffffff;
+    padding: 20px;
+  }
+
+  #btn-admin {
+    display: block;
+    margin: 0 auto 24px;
+    padding: 10px 22px;
+    background: #1e73be;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #btn-admin:hover { background: #155d99; }
+  #btn-admin.hidden { display: none; }
+
+  #estado {
+    text-align: center;
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 20px;
+    min-height: 20px;
+  }
+
+  .galeria {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+  }
+
+  .foto {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #dcdcdc;
+    aspect-ratio: 1;
+  }
+
+  .foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  #vacio {
+    text-align: center;
+    color: #aaa;
+    font-size: 15px;
+    margin-top: 40px;
+  }
+
+  /* Panel de contraseña */
+  #panel-pass {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  #panel-pass.visible { display: flex; }
+  #caja-pass {
+    background: white;
+    border-radius: 12px;
+    padding: 28px 32px;
+    width: 300px;
+    text-align: center;
+  }
+  #caja-pass h3 { font-size: 17px; margin-bottom: 16px; color: #2e2e2e; }
+  #input-pass {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  #caja-pass button {
+    width: 100%;
+    padding: 10px;
+    background: #1e73be;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  #caja-pass button:hover { background: #155d99; }
+  #btn-cancelar-pass {
+    background: transparent !important;
+    color: #777 !important;
+    font-size: 13px !important;
+  }
+  #error-pass { color: #c00; font-size: 13px; min-height: 18px; }
+</style>
+</head>
+<body>
+
+<!-- Botón admin (visible solo con doble clic en el título) -->
+<div id="titulo-oculto" style="text-align:center; color:#ccc; font-size:12px; cursor:default; margin-bottom:8px; user-select:none;" ondblclick="mostrarPanelPass()">●●●</div>
+
+<div id="btn-admin-wrap">
+  <button id="btn-admin" class="hidden" onclick="abrirPicker()">+ Actualizar fotos</button>
+</div>
+
+<div id="estado"></div>
+<div class="galeria" id="galeria"></div>
+<div id="vacio" style="display:none;">No hay fotos todavía.</div>
+
+<!-- Panel contraseña -->
+<div id="panel-pass">
+  <div id="caja-pass">
+    <h3>Acceso de administrador</h3>
+    <input type="password" id="input-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')verificarPass()">
+    <button onclick="verificarPass()">Entrar</button>
+    <button id="btn-cancelar-pass" onclick="cerrarPanelPass()">Cancelar</button>
+    <div id="error-pass"></div>
+  </div>
+</div>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async></script>
+
+<script>
+  const WORKER_URL = "https://galeria-fotos-eoitudela.adrian-cruz-goomez.workers.dev";
+  const CLIENT_ID = "586063066601-atpi1nf1em0il7v15spn2ao1gvk87ial.apps.googleusercontent.com";
+  const ADMIN_PASS = "admin1234"; // Cambia esta contraseña
+
+  let tokenClient = null;
+  let accessToken = null;
+  let esAdmin = false;
+
+  // Cargar fotos al iniciar
+  cargarFotos();
+
+  async function cargarFotos() {
+    setEstado("Cargando fotos...");
+    try {
+      const res = await fetch(WORKER_URL + "/photos");
+      const fotos = await res.json();
+      mostrarFotos(fotos);
+      setEstado("");
+    } catch (e) {
+      setEstado("Error al cargar las fotos.");
+    }
+  }
+
+  function mostrarFotos(fotos) {
+    const galeria = document.getElementById("galeria");
+    const vacio = document.getElementById("vacio");
+    galeria.innerHTML = "";
+    if (!fotos || fotos.length === 0) {
+      vacio.style.display = "block";
+      return;
+    }
+    vacio.style.display = "none";
+    fotos.forEach(foto => {
+      const div = document.createElement("div");
+      div.className = "foto";
+      const img = document.createElement("img");
+      img.src = foto.baseUrl + "=w400-h400";
+      img.alt = foto.filename || "Foto";
+      img.loading = "lazy";
+      div.appendChild(img);
+      galeria.appendChild(div);
+    });
+  }
+
+  function setEstado(msg) {
+    document.getElementById("estado").textContent = msg;
+  }
+
+  // Panel de contraseña
+  function mostrarPanelPass() {
+    document.getElementById("panel-pass").classList.add("visible");
+    document.getElementById("input-pass").value = "";
+    document.getElementById("error-pass").textContent = "";
+    setTimeout(() => document.getElementById("input-pass").focus(), 100);
+  }
+
+  function cerrarPanelPass() {
+    document.getElementById("panel-pass").classList.remove("visible");
+  }
+
+  function verificarPass() {
+    const val = document.getElementById("input-pass").value;
+    if (val === ADMIN_PASS) {
+      esAdmin = true;
+      cerrarPanelPass();
+      document.getElementById("btn-admin").classList.remove("hidden");
+    } else {
+      document.getElementById("error-pass").textContent = "Contraseña incorrecta.";
+    }
+  }
+
+  // Picker de Google Fotos
+  function abrirPicker() {
+    if (!tokenClient) {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: "https://www.googleapis.com/auth/photospicker.mediaitems.readonly",
+        callback: async (resp) => {
+          if (resp.error) { setEstado("Error de autenticación."); return; }
+          accessToken = resp.access_token;
+          await iniciarSesionPicker();
+        }
+      });
+    }
+    tokenClient.requestAccessToken();
+  }
+
+  async function iniciarSesionPicker() {
+    setEstado("Abriendo selector de fotos...");
+    try {
+      // Crear sesión
+      const sesRes = await fetch("https://photospicker.googleapis.com/v1/sessions", {
+        method: "POST",
+        headers: {
+          "Authorization": "Bearer " + accessToken,
+          "Content-Type": "application/json"
+        }
+      });
+      const sesion = await sesRes.json();
+
+      // Abrir el picker en una ventana nueva
+      const pickerWindow = window.open(sesion.pickerUri, "_blank", "width=900,height=700");
+
+      setEstado("Selecciona las fotos en la ventana que se ha abierto. Cuando termines, ciérrala.");
+
+      // Polling hasta que el usuario termine
+      const sessionId = sesion.id;
+      const intervalo = setInterval(async () => {
+        const pollRes = await fetch("https://photospicker.googleapis.com/v1/sessions/" + sessionId, {
+          headers: { "Authorization": "Bearer " + accessToken }
+        });
+        const poll = await pollRes.json();
+
+        if (poll.mediaItemsSet) {
+          clearInterval(intervalo);
+          if (pickerWindow) pickerWindow.close();
+          await guardarFotos(sessionId);
+        }
+      }, 2000);
+
+    } catch (e) {
+      setEstado("Error al abrir el selector: " + e.message);
+    }
+  }
+
+  async function guardarFotos(sessionId) {
+    setEstado("Guardando fotos seleccionadas...");
+    try {
+      const res = await fetch("https://photospicker.googleapis.com/v1/mediaItems?sessionId=" + sessionId, {
+        headers: { "Authorization": "Bearer " + accessToken }
+      });
+      const data = await res.json();
+      const fotos = (data.mediaItems || []).map(item => ({
+        id: item.id,
+        filename: item.mediaFile?.filename || "",
+        baseUrl: item.mediaFile?.baseUrl || ""
+      }));
+
+      await fetch(WORKER_URL + "/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fotos)
+      });
+
+      mostrarFotos(fotos);
+      setEstado("✓ Galería actualizada con " + fotos.length + " fotos.");
+    } catch (e) {
+      setEstado("Error al guardar las fotos: " + e.message);
+    }
+  }
+</script>
+
+</body>
+</html>
