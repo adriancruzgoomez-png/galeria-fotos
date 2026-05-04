@@ -11,24 +11,24 @@
 
   #estado { text-align: center; font-size: 13px; color: #aaa; margin-bottom: 12px; min-height: 18px; }
 
-  /* Vista álbumes — portada con texto superpuesto */
+  /* Vista álbumes — 2 columnas ~40% cada una */
   .albums-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
   }
 
   .album-card {
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
     cursor: pointer;
     position: relative;
-    height: 200px;
+    height: 280px;
     transition: transform 0.2s, box-shadow 0.2s;
   }
   .album-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.2);
   }
 
   .album-card img {
@@ -41,7 +41,7 @@
   .album-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 55%, transparent 100%);
+    background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.1) 55%, transparent 100%);
   }
 
   .album-info {
@@ -49,20 +49,20 @@
     bottom: 0;
     left: 0;
     right: 0;
-    padding: 14px 16px;
+    padding: 18px 20px;
   }
 
   .album-nombre {
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 500;
     color: white;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
   }
 
   .album-count {
-    font-size: 12px;
+    font-size: 14px;
     color: rgba(255,255,255,0.75);
-    margin-top: 3px;
+    margin-top: 4px;
   }
 
   /* Vista fotos masonry */
@@ -78,7 +78,7 @@
 
   .masonry { column-count: 4; column-gap: 8px; }
   @media (max-width: 900px) { .masonry { column-count: 3; } }
-  @media (max-width: 600px) { .masonry { column-count: 2; } }
+  @media (max-width: 600px) { .masonry { column-count: 2; } .albums-grid { grid-template-columns: 1fr; } }
   @media (max-width: 360px) { .masonry { column-count: 1; } }
 
   .masonry-item {
