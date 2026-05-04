@@ -7,51 +7,188 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: "Segoe UI", Arial, sans-serif; background: #ffffff; padding: 16px; }
+
   #estado { text-align: center; font-size: 13px; color: #aaa; margin-bottom: 16px; min-height: 18px; }
-  .galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
-  .foto { border-radius: 10px; overflow: hidden; border: 1px solid #dcdcdc; aspect-ratio: 1; }
-  .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  /* Vista álbumes */
+  .albums-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+  }
+
+  .album-card {
+    border-radius: 10px; overflow: hidden; border: 1px solid #dcdcdc;
+    cursor: pointer; transition: box-shadow 0.2s;
+  }
+  .album-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
+  .album-card img { width: 100%; height: 140px; object-fit: cover; display: block; }
+  .album-info { padding: 9px 12px 11px; }
+  .album-nombre { font-size: 14px; font-weight: 500; color: #2e2e2e; }
+  .album-count { font-size: 12px; color: #888; margin-top: 2px; }
+
+  /* Vista fotos de un álbum */
+  #vista-album { display: none; }
+  #btn-volver {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: none; border: none; color: #1e73be; font-size: 14px;
+    cursor: pointer; margin-bottom: 16px; padding: 0;
+  }
+  #btn-volver:hover { text-decoration: underline; }
+  #titulo-album { font-size: 18px; font-weight: 400; color: #2e2e2e; margin-bottom: 16px; }
+
+  .fotos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .foto { border-radius: 8px; overflow: hidden; border: 1px solid #dcdcdc; aspect-ratio: 1; cursor: pointer; }
+  .foto img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity 0.2s; }
+  .foto:hover img { opacity: 0.85; }
+
   #vacio { text-align: center; color: #aaa; font-size: 15px; margin-top: 40px; display: none; }
+
+  /* Lightbox */
+  #lightbox {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.92); align-items: center; justify-content: center; z-index: 200;
+  }
+  #lightbox.visible { display: flex; }
+  #lightbox img { max-width: 90vw; max-height: 90vh; border-radius: 4px; object-fit: contain; }
+  #lightbox-cerrar {
+    position: absolute; top: 16px; right: 20px;
+    color: white; font-size: 28px; cursor: pointer; background: none; border: none;
+  }
+  #lightbox-prev, #lightbox-next {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    color: white; font-size: 32px; cursor: pointer; background: none; border: none; padding: 10px;
+  }
+  #lightbox-prev { left: 10px; }
+  #lightbox-next { right: 10px; }
 </style>
 </head>
 <body>
 
-<div id="estado">Cargando fotos...</div>
-<div class="galeria" id="galeria"></div>
-<div id="vacio">No hay fotos todavía.</div>
+<div id="estado">Cargando...</div>
+
+<!-- Vista álbumes -->
+<div id="vista-albums">
+  <div class="albums-grid" id="albums-grid"></div>
+  <div id="vacio">No hay álbumes todavía.</div>
+</div>
+
+<!-- Vista fotos de álbum -->
+<div id="vista-album">
+  <button id="btn-volver" onclick="volverAlbums()">← Volver</button>
+  <div id="titulo-album"></div>
+  <div class="fotos-grid" id="fotos-grid"></div>
+</div>
+
+<!-- Lightbox -->
+<div id="lightbox">
+  <button id="lightbox-cerrar" onclick="cerrarLightbox()">×</button>
+  <button id="lightbox-prev" onclick="lightboxNav(-1)">‹</button>
+  <img id="lightbox-img" src="" alt="">
+  <button id="lightbox-next" onclick="lightboxNav(1)">›</button>
+</div>
 
 <script>
   const WORKER_URL = "https://galeria-fotos-eoitudela.adrian-cruz-goomez.workers.dev";
+  let albums = [];
+  let fotosActuales = [];
+  let lightboxIndex = 0;
 
-  async function cargarFotos() {
+  cargarAlbums();
+
+  async function cargarAlbums() {
     try {
-      const res = await fetch(WORKER_URL + "/photos");
-      const fotos = await res.json();
-      const galeria = document.getElementById("galeria");
-      const vacio = document.getElementById("vacio");
+      const res = await fetch(WORKER_URL + "/albums");
+      albums = await res.json();
       document.getElementById("estado").textContent = "";
-      galeria.innerHTML = "";
-      if (!fotos || fotos.length === 0) {
-        vacio.style.display = "block";
-        return;
-      }
-      vacio.style.display = "none";
-      fotos.forEach(foto => {
-        const div = document.createElement("div");
-        div.className = "foto";
-        const img = document.createElement("img");
-        img.src = foto.url;
-        img.alt = foto.filename || "Foto";
-        img.loading = "lazy";
-        div.appendChild(img);
-        galeria.appendChild(div);
-      });
+      mostrarAlbums();
     } catch (e) {
-      document.getElementById("estado").textContent = "Error al cargar las fotos.";
+      document.getElementById("estado").textContent = "Error al cargar.";
     }
   }
 
-  cargarFotos();
+  function mostrarAlbums() {
+    const grid = document.getElementById("albums-grid");
+    const vacio = document.getElementById("vacio");
+    grid.innerHTML = "";
+    document.getElementById("vista-albums").style.display = "block";
+    document.getElementById("vista-album").style.display = "none";
+
+    if (!albums || albums.length === 0) {
+      vacio.style.display = "block";
+      return;
+    }
+    vacio.style.display = "none";
+    albums.forEach(album => {
+      const card = document.createElement("div");
+      card.className = "album-card";
+      card.innerHTML = `
+        <img src="${album.portada}" alt="${album.nombre}" loading="lazy">
+        <div class="album-info">
+          <div class="album-nombre">${album.nombre}</div>
+          <div class="album-count">${album.fotos.length} foto${album.fotos.length !== 1 ? "s" : ""}</div>
+        </div>
+      `;
+      card.onclick = () => abrirAlbum(album);
+      grid.appendChild(card);
+    });
+  }
+
+  function abrirAlbum(album) {
+    fotosActuales = album.fotos;
+    document.getElementById("titulo-album").textContent = album.nombre;
+    document.getElementById("vista-albums").style.display = "none";
+    document.getElementById("vista-album").style.display = "block";
+
+    const grid = document.getElementById("fotos-grid");
+    grid.innerHTML = "";
+    album.fotos.forEach((foto, i) => {
+      const div = document.createElement("div");
+      div.className = "foto";
+      const img = document.createElement("img");
+      img.src = foto.url;
+      img.alt = foto.filename || "Foto";
+      img.loading = "lazy";
+      div.appendChild(img);
+      div.onclick = () => abrirLightbox(i);
+      grid.appendChild(div);
+    });
+  }
+
+  function volverAlbums() {
+    document.getElementById("vista-albums").style.display = "block";
+    document.getElementById("vista-album").style.display = "none";
+  }
+
+  function abrirLightbox(index) {
+    lightboxIndex = index;
+    document.getElementById("lightbox-img").src = fotosActuales[index].url;
+    document.getElementById("lightbox").classList.add("visible");
+  }
+
+  function cerrarLightbox() {
+    document.getElementById("lightbox").classList.remove("visible");
+  }
+
+  function lightboxNav(dir) {
+    lightboxIndex = (lightboxIndex + dir + fotosActuales.length) % fotosActuales.length;
+    document.getElementById("lightbox-img").src = fotosActuales[lightboxIndex].url;
+  }
+
+  document.getElementById("lightbox").addEventListener("click", function(e) {
+    if (e.target === this) cerrarLightbox();
+  });
+
+  document.addEventListener("keydown", function(e) {
+    if (!document.getElementById("lightbox").classList.contains("visible")) return;
+    if (e.key === "ArrowRight") lightboxNav(1);
+    if (e.key === "ArrowLeft") lightboxNav(-1);
+    if (e.key === "Escape") cerrarLightbox();
+  });
 </script>
 
 </body>
