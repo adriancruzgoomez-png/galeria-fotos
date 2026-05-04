@@ -6,39 +6,40 @@
 <title>Galería de fotos</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: "Segoe UI", Arial, sans-serif; background: #ffffff; padding: 16px; }
+  html, body { overflow: hidden; }
+  body { font-family: "Segoe UI", Arial, sans-serif; background: #ffffff; padding: 12px; }
 
-  #estado { text-align: center; font-size: 13px; color: #aaa; margin-bottom: 16px; min-height: 18px; }
+  #estado { text-align: center; font-size: 13px; color: #aaa; margin-bottom: 12px; min-height: 18px; }
 
-  /* Vista álbumes — grid normal con portadas */
+  /* Vista álbumes */
   .albums-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
   }
   .album-card {
-    border-radius: 10px; overflow: hidden; border: 1px solid #e0e0e0;
+    border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0;
     cursor: pointer; transition: box-shadow 0.2s;
   }
   .album-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
-  .album-card img { width: 100%; height: 140px; object-fit: cover; display: block; }
-  .album-info { padding: 9px 12px 11px; }
-  .album-nombre { font-size: 14px; font-weight: 500; color: #2e2e2e; }
-  .album-count { font-size: 12px; color: #888; margin-top: 2px; }
+  .album-card img { width: 100%; height: 110px; object-fit: cover; display: block; }
+  .album-info { padding: 7px 10px 9px; }
+  .album-nombre { font-size: 13px; font-weight: 500; color: #2e2e2e; }
+  .album-count { font-size: 11px; color: #888; margin-top: 2px; }
 
-  /* Vista fotos — masonry */
+  /* Vista fotos masonry */
   #vista-album { display: none; }
   #btn-volver {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: none; border: none; color: #1e73be; font-size: 14px;
-    cursor: pointer; margin-bottom: 14px; padding: 0;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: none; color: #1e73be; font-size: 13px;
+    cursor: pointer; margin-bottom: 12px; padding: 0;
   }
   #btn-volver:hover { text-decoration: underline; }
-  #titulo-album { font-size: 18px; font-weight: 400; color: #2e2e2e; margin-bottom: 16px; }
+  #titulo-album { font-size: 16px; font-weight: 400; color: #2e2e2e; margin-bottom: 12px; }
 
   .masonry {
     column-count: 4;
-    column-gap: 10px;
+    column-gap: 8px;
   }
   @media (max-width: 900px) { .masonry { column-count: 3; } }
   @media (max-width: 600px) { .masonry { column-count: 2; } }
@@ -46,8 +47,8 @@
 
   .masonry-item {
     break-inside: avoid;
-    margin-bottom: 10px;
-    border-radius: 8px;
+    margin-bottom: 8px;
+    border-radius: 6px;
     overflow: hidden;
     cursor: pointer;
   }
@@ -58,7 +59,7 @@
   }
   .masonry-item:hover img { opacity: 0.85; }
 
-  #vacio { text-align: center; color: #aaa; font-size: 15px; margin-top: 40px; display: none; }
+  #vacio { text-align: center; color: #aaa; font-size: 14px; margin-top: 30px; display: none; }
 
   /* Lightbox */
   #lightbox {
@@ -66,11 +67,7 @@
     background: rgba(0,0,0,0.93); align-items: center; justify-content: center; z-index: 200;
   }
   #lightbox.visible { display: flex; }
-  #lightbox-img {
-    max-width: 90vw; max-height: 90vh;
-    border-radius: 4px; object-fit: contain;
-    transition: opacity 0.15s;
-  }
+  #lightbox-img { max-width: 90vw; max-height: 90vh; border-radius: 4px; object-fit: contain; }
   #lightbox-cerrar {
     position: absolute; top: 14px; right: 18px;
     color: white; font-size: 30px; cursor: pointer; background: none; border: none; line-height: 1;
@@ -121,6 +118,12 @@
   let fotosActuales = [];
   let lightboxIndex = 0;
 
+  // Enviar altura al padre para que el iframe se ajuste
+  function notificarAltura() {
+    const altura = document.body.scrollHeight;
+    window.parent.postMessage({ tipo: "altura-galeria", altura }, "*");
+  }
+
   cargarAlbums();
 
   async function cargarAlbums() {
@@ -143,6 +146,7 @@
 
     if (!albums || albums.length === 0) {
       vacio.style.display = "block";
+      notificarAltura();
       return;
     }
     vacio.style.display = "none";
@@ -159,6 +163,22 @@
       card.onclick = () => abrirAlbum(album);
       grid.appendChild(card);
     });
+
+    // Esperar a que las imágenes carguen para medir la altura real
+    const imgs = grid.querySelectorAll("img");
+    let cargadas = 0;
+    imgs.forEach(img => {
+      if (img.complete) {
+        cargadas++;
+        if (cargadas === imgs.length) notificarAltura();
+      } else {
+        img.onload = img.onerror = () => {
+          cargadas++;
+          if (cargadas === imgs.length) notificarAltura();
+        };
+      }
+    });
+    if (imgs.length === 0) notificarAltura();
   }
 
   function abrirAlbum(album) {
@@ -180,11 +200,22 @@
       div.onclick = () => abrirLightbox(i);
       grid.appendChild(div);
     });
+
+    // Esperar a que las imágenes carguen para medir la altura real
+    const imgs = grid.querySelectorAll("img");
+    let cargadas = 0;
+    const check = () => { cargadas++; if (cargadas === imgs.length) notificarAltura(); };
+    imgs.forEach(img => {
+      if (img.complete) check();
+      else { img.onload = check; img.onerror = check; }
+    });
+    if (imgs.length === 0) notificarAltura();
   }
 
   function volverAlbums() {
     document.getElementById("vista-albums").style.display = "block";
     document.getElementById("vista-album").style.display = "none";
+    notificarAltura();
   }
 
   function abrirLightbox(index) {
