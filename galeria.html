@@ -6,7 +6,7 @@
 <title>Galería de fotos</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { overflow: hidden; }
+  html { overflow: hidden; }
   body { font-family: "Segoe UI", Arial, sans-serif; background: #ffffff; padding: 12px; }
 
   #estado { text-align: center; font-size: 13px; color: #aaa; margin-bottom: 12px; min-height: 18px; }
@@ -37,26 +37,16 @@
   #btn-volver:hover { text-decoration: underline; }
   #titulo-album { font-size: 16px; font-weight: 400; color: #2e2e2e; margin-bottom: 12px; }
 
-  .masonry {
-    column-count: 4;
-    column-gap: 8px;
-  }
+  .masonry { column-count: 4; column-gap: 8px; }
   @media (max-width: 900px) { .masonry { column-count: 3; } }
   @media (max-width: 600px) { .masonry { column-count: 2; } }
   @media (max-width: 360px) { .masonry { column-count: 1; } }
 
   .masonry-item {
-    break-inside: avoid;
-    margin-bottom: 8px;
-    border-radius: 6px;
-    overflow: hidden;
-    cursor: pointer;
+    break-inside: avoid; margin-bottom: 8px;
+    border-radius: 6px; overflow: hidden; cursor: pointer;
   }
-  .masonry-item img {
-    width: 100%;
-    display: block;
-    transition: opacity 0.2s;
-  }
+  .masonry-item img { width: 100%; display: block; transition: opacity 0.2s; }
   .masonry-item:hover img { opacity: 0.85; }
 
   #vacio { text-align: center; color: #aaa; font-size: 14px; margin-top: 30px; display: none; }
@@ -88,19 +78,21 @@
 </head>
 <body>
 
-<div id="estado">Cargando...</div>
+<div id="contenido">
+  <div id="estado">Cargando...</div>
 
-<!-- Vista álbumes -->
-<div id="vista-albums">
-  <div class="albums-grid" id="albums-grid"></div>
-  <div id="vacio">No hay álbumes todavía.</div>
-</div>
+  <!-- Vista álbumes -->
+  <div id="vista-albums">
+    <div class="albums-grid" id="albums-grid"></div>
+    <div id="vacio">No hay álbumes todavía.</div>
+  </div>
 
-<!-- Vista fotos masonry -->
-<div id="vista-album">
-  <button id="btn-volver" onclick="volverAlbums()">← Volver</button>
-  <div id="titulo-album"></div>
-  <div class="masonry" id="masonry-grid"></div>
+  <!-- Vista fotos masonry -->
+  <div id="vista-album">
+    <button id="btn-volver" onclick="volverAlbums()">← Volver</button>
+    <div id="titulo-album"></div>
+    <div class="masonry" id="masonry-grid"></div>
+  </div>
 </div>
 
 <!-- Lightbox -->
@@ -118,11 +110,12 @@
   let fotosActuales = [];
   let lightboxIndex = 0;
 
-  // Enviar altura al padre para que el iframe se ajuste
-  function notificarAltura() {
-    const altura = document.body.scrollHeight;
-    window.parent.postMessage({ tipo: "altura-galeria", altura }, "*");
-  }
+  // ResizeObserver: notifica al padre cada vez que el contenido cambia de tamaño
+  const observer = new ResizeObserver(() => {
+    const altura = document.getElementById("contenido").offsetHeight;
+    window.parent.postMessage({ tipo: "altura-galeria", altura: altura + 24 }, "*");
+  });
+  observer.observe(document.getElementById("contenido"));
 
   cargarAlbums();
 
@@ -146,7 +139,6 @@
 
     if (!albums || albums.length === 0) {
       vacio.style.display = "block";
-      notificarAltura();
       return;
     }
     vacio.style.display = "none";
@@ -163,22 +155,6 @@
       card.onclick = () => abrirAlbum(album);
       grid.appendChild(card);
     });
-
-    // Esperar a que las imágenes carguen para medir la altura real
-    const imgs = grid.querySelectorAll("img");
-    let cargadas = 0;
-    imgs.forEach(img => {
-      if (img.complete) {
-        cargadas++;
-        if (cargadas === imgs.length) notificarAltura();
-      } else {
-        img.onload = img.onerror = () => {
-          cargadas++;
-          if (cargadas === imgs.length) notificarAltura();
-        };
-      }
-    });
-    if (imgs.length === 0) notificarAltura();
   }
 
   function abrirAlbum(album) {
@@ -195,27 +171,16 @@
       const img = document.createElement("img");
       img.src = foto.url;
       img.alt = foto.filename || "Foto";
-      img.loading = "lazy";
+      // No usar lazy loading aquí para que el ResizeObserver detecte la altura real
       div.appendChild(img);
       div.onclick = () => abrirLightbox(i);
       grid.appendChild(div);
     });
-
-    // Esperar a que las imágenes carguen para medir la altura real
-    const imgs = grid.querySelectorAll("img");
-    let cargadas = 0;
-    const check = () => { cargadas++; if (cargadas === imgs.length) notificarAltura(); };
-    imgs.forEach(img => {
-      if (img.complete) check();
-      else { img.onload = check; img.onerror = check; }
-    });
-    if (imgs.length === 0) notificarAltura();
   }
 
   function volverAlbums() {
     document.getElementById("vista-albums").style.display = "block";
     document.getElementById("vista-album").style.display = "none";
-    notificarAltura();
   }
 
   function abrirLightbox(index) {
