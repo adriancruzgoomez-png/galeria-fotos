@@ -11,31 +11,70 @@
 
   #estado { text-align: center; font-size: 13px; color: #aaa; margin-bottom: 12px; min-height: 18px; }
 
-  /* Vista álbumes */
+  /* Vista álbumes — portada con texto superpuesto */
   .albums-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
   }
+
   .album-card {
-    border-radius: 8px; overflow: hidden; border: 1px solid #e0e0e0;
-    cursor: pointer; transition: box-shadow 0.2s;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    position: relative;
+    height: 200px;
+    transition: transform 0.2s, box-shadow 0.2s;
   }
-  .album-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.12); }
-  .album-card img { width: 100%; height: 110px; object-fit: cover; display: block; }
-  .album-info { padding: 7px 10px 9px; }
-  .album-nombre { font-size: 13px; font-weight: 500; color: #2e2e2e; }
-  .album-count { font-size: 11px; color: #888; margin-top: 2px; }
+  .album-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+  }
+
+  .album-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .album-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.1) 55%, transparent 100%);
+  }
+
+  .album-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 14px 16px;
+  }
+
+  .album-nombre {
+    font-size: 16px;
+    font-weight: 500;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  .album-count {
+    font-size: 12px;
+    color: rgba(255,255,255,0.75);
+    margin-top: 3px;
+  }
 
   /* Vista fotos masonry */
   #vista-album { display: none; }
+
   #btn-volver {
     display: inline-flex; align-items: center; gap: 5px;
     background: none; border: none; color: #1e73be; font-size: 13px;
     cursor: pointer; margin-bottom: 12px; padding: 0;
   }
   #btn-volver:hover { text-decoration: underline; }
-  #titulo-album { font-size: 16px; font-weight: 400; color: #2e2e2e; margin-bottom: 12px; }
+  #titulo-album { font-size: 17px; font-weight: 400; color: #2e2e2e; margin-bottom: 14px; }
 
   .masonry { column-count: 4; column-gap: 8px; }
   @media (max-width: 900px) { .masonry { column-count: 3; } }
@@ -81,13 +120,11 @@
 <div id="contenido">
   <div id="estado">Cargando...</div>
 
-  <!-- Vista álbumes -->
   <div id="vista-albums">
     <div class="albums-grid" id="albums-grid"></div>
     <div id="vacio">No hay álbumes todavía.</div>
   </div>
 
-  <!-- Vista fotos masonry -->
   <div id="vista-album">
     <button id="btn-volver" onclick="volverAlbums()">← Volver</button>
     <div id="titulo-album"></div>
@@ -95,7 +132,6 @@
   </div>
 </div>
 
-<!-- Lightbox -->
 <div id="lightbox">
   <button id="lightbox-cerrar" onclick="cerrarLightbox()">×</button>
   <button id="lightbox-prev" onclick="lightboxNav(-1)">‹</button>
@@ -110,7 +146,6 @@
   let fotosActuales = [];
   let lightboxIndex = 0;
 
-  // ResizeObserver: notifica al padre cada vez que el contenido cambia de tamaño
   const observer = new ResizeObserver(() => {
     const altura = document.getElementById("contenido").offsetHeight;
     window.parent.postMessage({ tipo: "altura-galeria", altura: altura + 24 }, "*");
@@ -146,7 +181,8 @@
       const card = document.createElement("div");
       card.className = "album-card";
       card.innerHTML = `
-        <img src="${album.portada}" alt="${album.nombre}" loading="lazy">
+        <img src="${album.portada}" alt="${album.nombre}">
+        <div class="album-overlay"></div>
         <div class="album-info">
           <div class="album-nombre">${album.nombre}</div>
           <div class="album-count">${album.fotos.length} foto${album.fotos.length !== 1 ? "s" : ""}</div>
@@ -171,7 +207,6 @@
       const img = document.createElement("img");
       img.src = foto.url;
       img.alt = foto.filename || "Foto";
-      // No usar lazy loading aquí para que el ResizeObserver detecte la altura real
       div.appendChild(img);
       div.onclick = () => abrirLightbox(i);
       grid.appendChild(div);
