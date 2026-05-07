@@ -21,33 +21,30 @@
 
   .albums-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 16px;
   }
 
   .album-card {
-    background: white;
-    border-radius: 10px;
-    overflow: hidden;
-    border: 1px solid #dcdcdc;
-    position: relative;
+    background: white; border-radius: 10px; overflow: hidden;
+    border: 1px solid #dcdcdc; position: relative;
   }
-
-  .album-card img {
-    width: 100%; height: 150px; object-fit: cover; display: block;
-  }
-
+  .album-card img { width: 100%; height: 160px; object-fit: cover; display: block; }
   .album-info { padding: 10px 12px 12px; }
   .album-nombre { font-size: 14px; font-weight: 500; color: #2e2e2e; margin-bottom: 4px; }
   .album-count { font-size: 12px; color: #888; }
 
-  .btn-eliminar {
-    position: absolute; top: 8px; right: 8px;
-    background: rgba(0,0,0,0.5); color: white; border: none;
-    border-radius: 50%; width: 26px; height: 26px; font-size: 14px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  .album-acciones {
+    display: flex; gap: 6px; padding: 0 12px 12px;
   }
-  .btn-eliminar:hover { background: rgba(200,0,0,0.7); }
+  .btn-accion {
+    flex: 1; padding: 6px 0; font-size: 12px; border: 1px solid #dcdcdc;
+    background: white; border-radius: 6px; cursor: pointer; color: #444;
+    transition: background 0.15s;
+  }
+  .btn-accion:hover { background: #f0f0f0; }
+  .btn-accion.danger { color: #c00; border-color: #f5c6c6; }
+  .btn-accion.danger:hover { background: #fff0f0; }
 
   #vacio { text-align: center; color: #aaa; font-size: 15px; margin-top: 40px; display: none; }
 
@@ -72,6 +69,18 @@
   .modal-box button:hover { background: #155d99; }
   .btn-cancelar { background: transparent !important; color: #777 !important; font-size: 13px !important; }
 
+  /* Modal editar álbum */
+  .fotos-portada {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+    max-height: 300px; overflow-y: auto; margin-bottom: 12px;
+  }
+  .foto-portada-item {
+    aspect-ratio: 1; border-radius: 6px; overflow: hidden;
+    cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s;
+  }
+  .foto-portada-item.seleccionada { border-color: #1e73be; }
+  .foto-portada-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
   #btn-confirmar {
     display: block; margin: 0 auto 16px; padding: 10px 22px;
     background: #2e7d32; color: white; border: none; border-radius: 8px;
@@ -90,13 +99,25 @@
 <div class="albums-grid" id="albums-grid"></div>
 <div id="vacio">No hay álbumes todavía.</div>
 
-<!-- Modal nombre álbum -->
+<!-- Modal nuevo álbum -->
 <div class="modal" id="modal-album">
   <div class="modal-box">
     <h3>Nuevo álbum</h3>
     <input type="text" id="input-nombre" placeholder="Nombre del álbum" onkeydown="if(event.key==='Enter')iniciarAlbum()">
     <button onclick="iniciarAlbum()">Seleccionar fotos</button>
-    <button class="btn-cancelar" onclick="cerrarModal()">Cancelar</button>
+    <button class="btn-cancelar" onclick="cerrarModal('modal-album')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal editar álbum -->
+<div class="modal" id="modal-editar">
+  <div class="modal-box">
+    <h3>Editar álbum</h3>
+    <input type="text" id="input-nombre-editar" placeholder="Nombre del álbum">
+    <p style="font-size:13px;color:#777;margin-bottom:8px;text-align:left;">Elige la foto de portada:</p>
+    <div class="fotos-portada" id="fotos-portada"></div>
+    <button onclick="guardarEdicion()">Guardar cambios</button>
+    <button class="btn-cancelar" onclick="cerrarModal('modal-editar')">Cancelar</button>
   </div>
 </div>
 
@@ -104,12 +125,15 @@
 <script>
   const WORKER_URL = "https://galeria-fotos-eoitudela.adrian-cruz-goomez.workers.dev";
   const CLIENT_ID = "586063066601-atpi1nf1em0il7v15spn2ao1gvk87ial.apps.googleusercontent.com";
+  const ADMIN_PASS = "admin1234";
 
   let tokenClient = null;
   let accessToken = null;
   let pickerWindow = null;
   let currentSessionId = null;
   let nombreAlbumPendiente = null;
+  let albumEditando = null;
+  let portadaSeleccionada = null;
 
   cargarAlbums();
 
@@ -143,7 +167,10 @@
           <div class="album-nombre">${album.nombre}</div>
           <div class="album-count">${album.fotos.length} foto${album.fotos.length !== 1 ? "s" : ""}</div>
         </div>
-        <button class="btn-eliminar" onclick="eliminarAlbum('${album.id}')" title="Eliminar álbum">×</button>
+        <div class="album-acciones">
+          <button class="btn-accion" onclick="abrirEditar('${album.id}')">✏️ Editar</button>
+          <button class="btn-accion danger" onclick="eliminarAlbum('${album.id}')">🗑 Eliminar</button>
+        </div>
       `;
       grid.appendChild(card);
     });
@@ -159,15 +186,67 @@
     setTimeout(() => document.getElementById("input-nombre").focus(), 100);
   }
 
-  function cerrarModal() {
-    document.getElementById("modal-album").classList.remove("visible");
+  function cerrarModal(id) {
+    document.getElementById(id).classList.remove("visible");
   }
 
+  // ── EDITAR ÁLBUM ──
+  async function abrirEditar(albumId) {
+    const res = await fetch(WORKER_URL + "/albums");
+    const albums = await res.json();
+    albumEditando = albums.find(a => a.id === albumId);
+    if (!albumEditando) return;
+
+    portadaSeleccionada = albumEditando.portada;
+    document.getElementById("input-nombre-editar").value = albumEditando.nombre;
+
+    const grid = document.getElementById("fotos-portada");
+    grid.innerHTML = "";
+    albumEditando.fotos.forEach(foto => {
+      const div = document.createElement("div");
+      div.className = "foto-portada-item" + (foto.url === portadaSeleccionada ? " seleccionada" : "");
+      div.innerHTML = `<img src="${foto.url}" alt="">`;
+      div.onclick = () => {
+        portadaSeleccionada = foto.url;
+        document.querySelectorAll(".foto-portada-item").forEach(el => el.classList.remove("seleccionada"));
+        div.classList.add("seleccionada");
+      };
+      grid.appendChild(div);
+    });
+
+    document.getElementById("modal-editar").classList.add("visible");
+  }
+
+  async function guardarEdicion() {
+    if (!albumEditando) return;
+    const nuevoNombre = document.getElementById("input-nombre-editar").value.trim();
+    if (!nuevoNombre) return;
+
+    try {
+      const res = await fetch(WORKER_URL + "/albums/" + albumEditando.id, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nombre: nuevoNombre, portada: portadaSeleccionada })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        cerrarModal("modal-editar");
+        setEstado("✓ Álbum actualizado.");
+        await cargarAlbums();
+      } else {
+        setEstado("Error al guardar.");
+      }
+    } catch (e) {
+      setEstado("Error: " + e.message);
+    }
+  }
+
+  // ── NUEVO ÁLBUM ──
   function iniciarAlbum() {
     const nombre = document.getElementById("input-nombre").value.trim();
     if (!nombre) return;
     nombreAlbumPendiente = nombre;
-    cerrarModal();
+    cerrarModal("modal-album");
 
     pickerWindow = window.open("about:blank", "picker_google", "width=950,height=700,left=100,top=100");
 
@@ -194,10 +273,7 @@
     try {
       const sesRes = await fetch("https://photospicker.googleapis.com/v1/sessions", {
         method: "POST",
-        headers: {
-          "Authorization": "Bearer " + accessToken,
-          "Content-Type": "application/json"
-        }
+        headers: { "Authorization": "Bearer " + accessToken, "Content-Type": "application/json" }
       });
       const sesion = await sesRes.json();
 
@@ -213,7 +289,6 @@
       document.getElementById("btn-confirmar").classList.remove("hidden");
       document.getElementById("btn-nuevo-album").style.display = "none";
       setEstado('Selecciona las fotos del álbum "' + nombreAlbumPendiente + '". Cuando termines pulsa el botón verde.');
-
     } catch (e) {
       setEstado("Error: " + e.message);
       if (pickerWindow) pickerWindow.close();
@@ -221,10 +296,7 @@
   }
 
   async function recogerFotos() {
-    if (!currentSessionId || !accessToken) {
-      setEstado("Error: no hay sesión activa.");
-      return;
-    }
+    if (!currentSessionId || !accessToken) { setEstado("Error: no hay sesión activa."); return; }
     if (pickerWindow && !pickerWindow.closed) pickerWindow.close();
     document.getElementById("btn-confirmar").classList.add("hidden");
     document.getElementById("btn-nuevo-album").style.display = "block";
@@ -237,7 +309,7 @@
       const data = await res.json();
 
       if (!data.mediaItems || data.mediaItems.length === 0) {
-        setEstado("No se encontraron fotos. ¿Confirmaste la selección en Google Fotos?");
+        setEstado("No se encontraron fotos. ¿Confirmaste la selección?");
         return;
       }
 
@@ -258,7 +330,8 @@
       const result = await uploadRes.json();
 
       if (result.ok) {
-        setEstado('✓ Álbum "' + result.album.nombre + '" creado con ' + result.guardadas + ' fotos.');
+        setEstado('✓ Álbum "' + result.album.nombre + '" creado con ' + result.guardadas + ' fotos.' +
+          (result.errores > 0 ? " (" + result.errores + " errores)" : ""));
         await cargarAlbums();
       } else {
         setEstado("Error: " + JSON.stringify(result));
@@ -275,6 +348,7 @@
     if (!confirm("¿Seguro que quieres eliminar este álbum?")) return;
     try {
       await fetch(WORKER_URL + "/albums/" + albumId, { method: "DELETE" });
+      setEstado("Álbum eliminado.");
       await cargarAlbums();
     } catch (e) {
       setEstado("Error al eliminar el álbum.");
