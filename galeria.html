@@ -11,108 +11,62 @@
 
   #estado { text-align: center; font-size: 13px; color: #aaa; margin-bottom: 12px; min-height: 18px; }
 
-  /* Vista álbumes — 2 columnas ~40% cada una */
-  .albums-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-  }
+  /* Vista álbumes */
+  .albums-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  @media (max-width: 600px) { .albums-grid { grid-template-columns: repeat(2, 1fr); } }
 
   .album-card {
-    border-radius: 14px;
-    overflow: hidden;
-    cursor: pointer;
-    position: relative;
-    height: 280px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    border-radius: 14px; overflow: hidden; cursor: pointer; position: relative;
+    height: 180px; transition: transform 0.2s, box-shadow 0.2s;
   }
-  .album-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(0,0,0,0.2);
-  }
-
-  .album-card img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .album-overlay {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.1) 55%, transparent 100%);
-  }
-
-  .album-info {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 18px 20px;
-  }
-
-  .album-nombre {
-    font-size: 20px;
-    font-weight: 500;
-    color: white;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.4);
-  }
-
-  .album-count {
-    font-size: 14px;
-    color: rgba(255,255,255,0.75);
-    margin-top: 4px;
-  }
+  .album-card:hover { transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.2); }
+  .album-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .album-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.1) 55%, transparent 100%); }
+  .album-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 14px 16px; }
+  .album-nombre { font-size: 18px; font-weight: 500; color: white; text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+  .album-count { font-size: 13px; color: rgba(255,255,255,0.75); margin-top: 3px; }
 
   /* Vista fotos masonry */
   #vista-album { display: none; }
-
-  #btn-volver {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: none; border: none; color: #1e73be; font-size: 13px;
-    cursor: pointer; margin-bottom: 12px; padding: 0;
-  }
+  #btn-volver { display: inline-flex; align-items: center; gap: 5px; background: none; border: none; color: #1e73be; font-size: 13px; cursor: pointer; margin-bottom: 12px; padding: 0; }
   #btn-volver:hover { text-decoration: underline; }
   #titulo-album { font-size: 17px; font-weight: 400; color: #2e2e2e; margin-bottom: 14px; }
 
   .masonry { column-count: 4; column-gap: 8px; }
   @media (max-width: 900px) { .masonry { column-count: 3; } }
-  @media (max-width: 600px) { .masonry { column-count: 2; } .albums-grid { grid-template-columns: 1fr; } }
+  @media (max-width: 600px) { .masonry { column-count: 2; } }
   @media (max-width: 360px) { .masonry { column-count: 1; } }
 
-  .masonry-item {
-    break-inside: avoid; margin-bottom: 8px;
-    border-radius: 6px; overflow: hidden; cursor: pointer;
-  }
+  .masonry-item { break-inside: avoid; margin-bottom: 8px; border-radius: 6px; overflow: hidden; cursor: pointer; position: relative; }
   .masonry-item img { width: 100%; display: block; transition: opacity 0.2s; }
+  .masonry-item video { width: 100%; display: block; }
   .masonry-item:hover img { opacity: 0.85; }
+
+  /* Icono play sobre vídeos */
+  .video-overlay {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.2); transition: background 0.2s;
+  }
+  .video-overlay:hover { background: rgba(0,0,0,0.35); }
+  .play-icon {
+    width: 44px; height: 44px; background: rgba(255,255,255,0.9); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .play-icon::after { content: ""; border-left: 16px solid #333; border-top: 10px solid transparent; border-bottom: 10px solid transparent; margin-left: 4px; }
 
   #vacio { text-align: center; color: #aaa; font-size: 14px; margin-top: 30px; display: none; }
 
   /* Lightbox */
-  #lightbox {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.93); align-items: center; justify-content: center; z-index: 200;
-  }
+  #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.93); align-items: center; justify-content: center; z-index: 200; }
   #lightbox.visible { display: flex; }
   #lightbox-img { max-width: 90vw; max-height: 90vh; border-radius: 4px; object-fit: contain; }
-  #lightbox-cerrar {
-    position: absolute; top: 14px; right: 18px;
-    color: white; font-size: 30px; cursor: pointer; background: none; border: none; line-height: 1;
-  }
-  #lightbox-prev, #lightbox-next {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    color: white; font-size: 36px; cursor: pointer; background: none; border: none;
-    padding: 12px; opacity: 0.7; transition: opacity 0.2s;
-  }
+  #lightbox-video { max-width: 90vw; max-height: 90vh; border-radius: 4px; display: none; outline: none; }
+  #lightbox-cerrar { position: absolute; top: 14px; right: 18px; color: white; font-size: 30px; cursor: pointer; background: none; border: none; line-height: 1; }
+  #lightbox-prev, #lightbox-next { position: absolute; top: 50%; transform: translateY(-50%); color: white; font-size: 36px; cursor: pointer; background: none; border: none; padding: 12px; opacity: 0.7; }
   #lightbox-prev:hover, #lightbox-next:hover { opacity: 1; }
   #lightbox-prev { left: 6px; }
   #lightbox-next { right: 6px; }
-  #lightbox-counter {
-    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
-    color: rgba(255,255,255,0.6); font-size: 13px;
-  }
+  #lightbox-counter { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.6); font-size: 13px; }
 </style>
 </head>
 <body>
@@ -136,6 +90,7 @@
   <button id="lightbox-cerrar" onclick="cerrarLightbox()">×</button>
   <button id="lightbox-prev" onclick="lightboxNav(-1)">‹</button>
   <img id="lightbox-img" src="" alt="">
+  <video id="lightbox-video" controls></video>
   <button id="lightbox-next" onclick="lightboxNav(1)">›</button>
   <div id="lightbox-counter"></div>
 </div>
@@ -171,11 +126,7 @@
     grid.innerHTML = "";
     document.getElementById("vista-albums").style.display = "block";
     document.getElementById("vista-album").style.display = "none";
-
-    if (!albums || albums.length === 0) {
-      vacio.style.display = "block";
-      return;
-    }
+    if (!albums || albums.length === 0) { vacio.style.display = "block"; return; }
     vacio.style.display = "none";
     albums.forEach(album => {
       const card = document.createElement("div");
@@ -185,7 +136,7 @@
         <div class="album-overlay"></div>
         <div class="album-info">
           <div class="album-nombre">${album.nombre}</div>
-          <div class="album-count">${album.fotos.length} foto${album.fotos.length !== 1 ? "s" : ""}</div>
+          <div class="album-count">${album.fotos.length} elemento${album.fotos.length !== 1 ? "s" : ""}</div>
         </div>
       `;
       card.onclick = () => abrirAlbum(album);
@@ -201,19 +152,38 @@
 
     const grid = document.getElementById("masonry-grid");
     grid.innerHTML = "";
-    album.fotos.forEach((foto, i) => {
+
+    album.fotos.forEach((item, i) => {
       const div = document.createElement("div");
       div.className = "masonry-item";
-      const img = document.createElement("img");
-      img.src = foto.url;
-      img.alt = foto.filename || "Foto";
-      div.appendChild(img);
+
+      if (item.tipo === "video") {
+        const video = document.createElement("video");
+        video.src = item.url;
+        video.muted = true;
+        video.preload = "metadata";
+        div.appendChild(video);
+
+        const overlay = document.createElement("div");
+        overlay.className = "video-overlay";
+        overlay.innerHTML = '<div class="play-icon"></div>';
+        div.appendChild(overlay);
+      } else {
+        const img = document.createElement("img");
+        img.src = item.url;
+        img.alt = item.filename || "Foto";
+        div.appendChild(img);
+      }
+
       div.onclick = () => abrirLightbox(i);
       grid.appendChild(div);
     });
   }
 
   function volverAlbums() {
+    // Pausar vídeo del lightbox si está abierto
+    const v = document.getElementById("lightbox-video");
+    v.pause();
     document.getElementById("vista-albums").style.display = "block";
     document.getElementById("vista-album").style.display = "none";
   }
@@ -225,12 +195,31 @@
   }
 
   function actualizarLightbox() {
-    document.getElementById("lightbox-img").src = fotosActuales[lightboxIndex].url;
+    const item = fotosActuales[lightboxIndex];
+    const img = document.getElementById("lightbox-img");
+    const video = document.getElementById("lightbox-video");
+
+    // Pausar vídeo anterior
+    video.pause();
+
+    if (item.tipo === "video") {
+      img.style.display = "none";
+      video.style.display = "block";
+      video.src = item.url;
+      video.play();
+    } else {
+      video.style.display = "none";
+      video.src = "";
+      img.style.display = "block";
+      img.src = item.url;
+    }
+
     document.getElementById("lightbox-counter").textContent =
       (lightboxIndex + 1) + " / " + fotosActuales.length;
   }
 
   function cerrarLightbox() {
+    document.getElementById("lightbox-video").pause();
     document.getElementById("lightbox").classList.remove("visible");
   }
 
